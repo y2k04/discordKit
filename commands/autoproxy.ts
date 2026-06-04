@@ -1,21 +1,28 @@
-import { PKCache, SetAutoproxy, UpdateProfile } from "@plugins/discordKit/utils";
-import { CommandContext, CommandReturnValue } from "@vencord/discord-types";
-import PKAPI from "pkapi.js";
+/*
+ * Vencord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
 
-export default async function (pkClient: PKAPI, cache: PKCache, ctx: CommandContext, args: Record<string, any>): Promise<CommandReturnValue> {
+import { CommandContext, CommandReturnValue } from "@vencord/discord-types";
+
+import PluralKit from "../PluralKit";
+import { Cache, UpdateProfile } from "../utils";
+
+export default async function (pk: PluralKit, cache: Cache, ctx: CommandContext, args: Record<string, any>): Promise<CommandReturnValue> {
     if (cache.isReady)
         return {
             content: await (
-                args.mode ? mode(pkClient, cache, ctx, args) :
-                    args.member ? member(pkClient, cache, ctx, args) :
-                        _default(pkClient, cache, ctx)
+                args.mode ? mode(pk, cache, ctx, args) :
+                    args.member ? member(pk, cache, ctx, args) :
+                        _default(pk, cache, ctx)
             )
         };
     return { content: "DiscordKit is not ready." };
 }
 
-async function mode(pkClient: PKAPI, cache: PKCache, ctx: CommandContext, args: Record<string, any>): Promise<string> {
-    const request = await SetAutoproxy(pkClient, null, cache, ctx.guild, args.mode);
+async function mode(pk: PluralKit, cache: Cache, ctx: CommandContext, args: Record<string, any>): Promise<string> {
+    const request = await pk.setAutoproxy(null, cache, ctx.guild, args.mode);
     if (request === false) return "Autoproxy settings unchanged.";
 
     switch (args.mode) {
@@ -31,10 +38,11 @@ async function mode(pkClient: PKAPI, cache: PKCache, ctx: CommandContext, args: 
     return `Autoproxy mode set to ${args.mode}.`;
 }
 
-async function member(pkClient: PKAPI, cache: PKCache, ctx: CommandContext, args: Record<string, any>): Promise<string> {
-    const member = ([...cache.system.members].find(e => e[1].name === args.member || e[1].id === args.member))[1];
-    const request = await SetAutoproxy(pkClient, member, cache, ctx.guild);
+async function member(pk: PluralKit, cache: Cache, ctx: CommandContext, args: Record<string, any>): Promise<string> {
+    const member = cache.system.members.find(e => e.name === args.member || e.id === args.member);
+    if (!member) return "Could not find member in system";
 
+    const request = await pk.setAutoproxy(member, cache, ctx.guild);
     if (request === false) return "Autoproxy settings unchanged.";
 
     const update = await UpdateProfile({
@@ -46,12 +54,13 @@ async function member(pkClient: PKAPI, cache: PKCache, ctx: CommandContext, args
     return update;
 }
 
-async function _default(pkClient: PKAPI, cache: PKCache, ctx: CommandContext): Promise<string> {
+async function _default(pk: PluralKit, cache: Cache, ctx: CommandContext): Promise<string> {
     if (ctx.guild !== undefined) {
-        let data = cache.autoproxy.find(e => e.guild === ctx.guild?.id);
+        let data = cache.autoproxy.get(ctx.guild?.id);
         if (data === undefined) {
-            cache.autoproxy.push(await pkClient.getSystemAutoproxySettings({ guild: ctx.guild.id, token: cache.token() }));
-            data = cache.autoproxy.find(e => e.guild === ctx.guild?.id);
+            const res = await pk.getAutoproxySettings(ctx.guild.id, cache.token());
+            cache.autoproxy.set(ctx.guild.id, res);
+            data = cache.autoproxy.get(ctx.guild.id);
             if (data === undefined)
                 return `Failed to create autoproxy cache for guild \`${ctx.guild?.id}\``;
         }
@@ -63,7 +72,7 @@ async function _default(pkClient: PKAPI, cache: PKCache, ctx: CommandContext): P
             data?.last_latch_timestamp ? `Last latch timestamp: ${data.last_latch_timestamp}` : ""
         ].join("\n").replaceAll("\n\n", "\n");
     } else {
-        const data = cache.autoproxy.find(e => e.guild === "0");
+        const data = cache.autoproxy.get("0");
         return [
             "__Autoproxy settings for DMs__",
             data?.autoproxy_member ? `Member: ${data.autoproxy_member}` : "",

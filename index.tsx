@@ -1,38 +1,36 @@
+/*
+ * Vencord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
 import { definePluginSettings } from "@api/Settings";
 import { Button } from "@components/Button";
-import { authorize, tryLogin } from "@plugins/discordKit/auth";
-import { commands } from "@plugins/discordKit/commands";
-import { PKCache } from "@plugins/discordKit/utils";
-import { Devs } from "@utils/constants";
+import { commands } from "@equicordplugins/discordKit/commands";
+import { Cache } from "@equicordplugins/discordKit/utils";
+import { EquicordDevs } from "@utils/constants";
 import definePlugin, { OptionType } from "@utils/types";
 import { showToast, Toasts } from "@webpack/common";
-import PKClient, { System } from "pkapi.js";
 
-export let pkClient: PKClient;
-export const cache: PKCache = {
+import PluralKit, { System, SystemAutoproxySettings } from "./PluralKit";
+
+export let pk: PluralKit;
+export const cache: Cache = {
     isReady: false,
     token: () => settings.store.pk_token,
-    autoproxy: [],
+    autoproxy: {} as Map<string, SystemAutoproxySettings>,
     system: {} as System,
     userId: ""
 };
-
-export enum PK {
-    csp = "*.pluralkit.me",
-    clientID = "466378653216014359",
-    redirect = "https://dash.pluralkit.me/login/discord",
-    callback = "https://api.pluralkit.me/private/discord/callback",
-    dashboard = "https://dash.pluralkit.me"
-}
 
 export const settings = definePluginSettings({
     authorize: {
         type: OptionType.COMPONENT,
         component: () => (
             <Button onClick={() => {
-                authorize(async (token: string) => {
+                pk.authorize(async (token: string) => {
                     settings.store.pk_token = token;
-                    await tryLogin(pkClient, cache);
+                    await pk.tryLogin(cache);
                 });
             }}>
                 Log into PluralKit
@@ -50,22 +48,16 @@ export const settings = definePluginSettings({
 export default definePlugin({
     name: "DiscordKit",
     description: "Integrates PluralKit into the Discord client",
-    authors: [Devs.y2k4],
+    authors: [EquicordDevs.y2k4],
     settings,
 
     commands,
     start: async () => {
-        await VencordNative.csp.requestAddOverride(PK.csp, ["connect-src"], "DiscordKit");
-        pkClient = new PKClient({ token: undefined });
-
-        if (cache.token() !== "") {
-            if (!await tryLogin(pkClient, cache)) {
-                settings.store.pk_token = "";
-            }
-        }
+        await VencordNative.csp.requestAddOverride("*.pluralkit.me", ["connect-src"], "DiscordKit");
+        pk = new PluralKit(settings, cache);
     },
     stop: async () => {
-        await VencordNative.csp.removeOverride(PK.csp);
+        await VencordNative.csp.removeOverride("*.pluralkit.me");
         showToast("Unloaded DiscordKit", Toasts.Type.SUCCESS);
     }
 });

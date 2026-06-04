@@ -1,19 +1,26 @@
-import { PKCache } from "@plugins/discordKit/utils";
-import { CommandReturnValue } from "@vencord/discord-types";
-import PKAPI, { SystemFetchOptions } from "pkapi.js";
+/*
+ * Vencord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
 
-export default async function (pkClient: PKAPI, cache: PKCache, args: Record<string, any>): Promise<CommandReturnValue> {
+import { CommandReturnValue } from "@vencord/discord-types";
+
+import PluralKit from "../PluralKit";
+import { Cache } from "../utils";
+
+export default async function (pk: PluralKit, cache: Cache, args: Record<string, any>): Promise<CommandReturnValue> {
     if (!cache.isReady) return { content: "DiscordKit is not ready." };
 
     const id = args.id === undefined ? "@me" :
         args.id.startsWith("<@") ? args.id.replace(/[<@>]/g, "") : args.id;
-    const token = id === "@me" ? cache.token() : undefined;
+    const token = id === "@me" ? cache.token() : "";
     const fetch = [id === "@me" ? "config" : "", "fronters", "group members", "groups", "members", "switches"];
 
     try {
         const system_temp = Object.entries(id === "@me" || id === cache.userId ?
-            cache.system : await pkClient.getSystem({ system: id, fetch: fetch as SystemFetchOptions[], token })
-        ).filter(v => v[1] !== null && v[1] !== undefined); // Required because API throws both types
+            cache.system : await pk.getSystem(id, token)
+        ).filter(v => v[1] !== null); // Required because API throws both types
 
         const system: Array<[string, any]> = [];
         const contentLines: string[] = [];
@@ -30,7 +37,7 @@ export default async function (pkClient: PKAPI, cache: PKCache, args: Record<str
                         break;
                     case "created":
                         key = "Created";
-                        value = (v[1] as Date).toUTCString().replace("GMT", "UTC");
+                        value = new Date(v[1]).toUTCString().replace("GMT", "UTC");
                         break;
                     case "id":
                         key = "ID";

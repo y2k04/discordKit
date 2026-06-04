@@ -1,10 +1,16 @@
+/*
+ * Vencord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
 import { ApplicationCommandOptionType } from "@api/Commands";
-import autoproxy from "@plugins/discordKit/commands/autoproxy";
-import system from "@plugins/discordKit/commands/system";
-import { CmdArgToDict } from "@plugins/discordKit/utils";
+import autoproxy from "@equicordplugins/discordKit/commands/autoproxy";
+import system from "@equicordplugins/discordKit/commands/system";
+import { CmdArgToDict } from "@equicordplugins/discordKit/utils";
 import { Command } from "@vencord/discord-types";
 
-import { cache, pkClient } from ".";
+import { cache, pk } from ".";
 
 export const commands: Command[] = [
     {
@@ -18,7 +24,7 @@ export const commands: Command[] = [
                 required: false
             }
         ],
-        execute: async (args, ctx) => await system(pkClient, cache, CmdArgToDict(args))
+        execute: async (args, ctx) => await system(pk, cache, CmdArgToDict(args))
     },
     {
         name: "autoproxy",
@@ -54,6 +60,6 @@ export const commands: Command[] = [
                 description: "ID or name of a member of your system"
             }
         ],
-        execute: async (args, ctx) => await autoproxy(pkClient, cache, ctx, CmdArgToDict(args))
+        execute: async (args, ctx) => await autoproxy(pk, cache, ctx, CmdArgToDict(args))
     }
 ];
