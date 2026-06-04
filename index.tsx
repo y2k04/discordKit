@@ -48,7 +48,7 @@ export const settings = definePluginSettings({
 export default definePlugin({
     name: "DiscordKit",
     description: "Integrates PluralKit into the Discord client",
-    authors: [EquicordDevs.y2k4],
+    authors: [{ name: "y2k4", id: 391801250909257728n }],
     settings,
 
     commands,
