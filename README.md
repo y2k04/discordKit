@@ -9,7 +9,7 @@ DiscordKit is a client-side integration for PluralKit.
 - Autoproxy changes the banner colour, display name, and bio.
 
 ### To-do:
-- [ ] Replace pkapi.js with a simple api class
+- [ ] Convert to standalone plugin
 - [ ] Add prefix to commands (`/pk;[command]`)
 - [ ] Get avatar uploads working
 - [ ] Save autoproxy settings to plugin settings to allow persistence
