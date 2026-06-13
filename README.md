@@ -12,7 +12,7 @@ DiscordKit is a client-side integration for PluralKit.
 - [x] Replace pkapi.js with a simple api class
 - [x] Add prefix to commands (`/pk;[command]`)
 - [ ] Get avatar uploads working
-- [ ] Save autoproxy settings to plugin settings to allow persistence
+- [x] Save autoproxy settings to plugin settings to allow persistence
 - [ ] Front and latch modes for autoproxy
 - [ ] Help command
 - [ ] Look into if implementing the rest of the commands is worth the tech debt
