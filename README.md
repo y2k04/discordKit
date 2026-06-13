@@ -1,16 +1,16 @@
 # discordKit
-DiscordKit is a client-side integration for PluralKit. 
+DiscordKit is a client-side integration for PluralKit.
 
 ### Current features:
-- Retrieve PluralKit system information (`/system`)
-- Retrieve other system's information (`/system id:[system id / username / user id]`)
-- Activate autoproxy in member mode for the current guild (`/autoproxy member:[member id / name]`)
-- Deactivate autoproxy in current guild (`/autoproxy mode:off`)
+- Retrieve PluralKit system information (`/pk;system`)
+- Retrieve other system's information (`/pk;system id:[system id / username / user id]`)
+- Activate autoproxy in member mode for the current guild (`/pk;autoproxy member:[member id / name]`)
+- Deactivate autoproxy in current guild (`/pk;autoproxy mode:off`)
 - Autoproxy changes the banner colour, display name, and bio.
 
 ### To-do:
-- [ ] Replace pkapi.js with a simple api class
-- [ ] Add prefix to commands (`/pk;[command]`)
+- [x] Replace pkapi.js with a simple api class
+- [x] Add prefix to commands (`/pk;[command]`)
 - [ ] Get avatar uploads working
 - [ ] Save autoproxy settings to plugin settings to allow persistence
 - [ ] Front and latch modes for autoproxy

@@ -6,7 +6,7 @@
 
 import { CommandContext, CommandReturnValue } from "@vencord/discord-types";
 
-import PluralKit from "../PluralKit";
+import PluralKit, { AutoproxyMode } from "../PluralKit";
 import { Cache, UpdateProfile } from "../utils";
 
 export default async function (pk: PluralKit, cache: Cache, ctx: CommandContext, args: Record<string, any>): Promise<CommandReturnValue> {
@@ -40,7 +40,7 @@ async function mode(pk: PluralKit, cache: Cache, ctx: CommandContext, args: Reco
 
 async function member(pk: PluralKit, cache: Cache, ctx: CommandContext, args: Record<string, any>): Promise<string> {
     const member = cache.system.members.find(e => e.name === args.member || e.id === args.member);
-    if (!member) return "Could not find member in system";
+    if (!member) return `Could not find "${args.member}" in system.`;
 
     const request = await pk.setAutoproxy(member, cache, ctx.guild);
     if (request === false) return "Autoproxy settings unchanged.";
@@ -49,35 +49,41 @@ async function member(pk: PluralKit, cache: Cache, ctx: CommandContext, args: Re
         "bio": member.description ?? "",
         "global_name": member.name,
         "banner_color": `#${member.color ?? ""}`
-    }).then(r => `Autoproxy set to ${member.name} (${member.id}`).catch(e => e.message);
+    }).then(r => `Autoproxy set to ${member.name} (${member.id})`).catch(e => e.message);
 
     return update;
 }
 
 async function _default(pk: PluralKit, cache: Cache, ctx: CommandContext): Promise<string> {
     if (ctx.guild !== undefined) {
-        let data = cache.autoproxy.get(ctx.guild?.id);
+        let data = cache.autoproxy.find(e => e[0] === ctx.guild?.id);
         if (data === undefined) {
-            const res = await pk.getAutoproxySettings(ctx.guild.id, cache.token());
-            cache.autoproxy.set(ctx.guild.id, res);
-            data = cache.autoproxy.get(ctx.guild.id);
+            const tmp = await pk.getAutoproxySettings(ctx.guild.id, cache.token());
+            cache.autoproxy.push([ctx.guild.id, tmp]);
+            data = cache.autoproxy.find(e => e[0] === ctx.guild?.id);
             if (data === undefined)
                 return `Failed to create autoproxy cache for guild \`${ctx.guild?.id}\``;
         }
 
         return [
             `__Autoproxy settings for ${ctx.guild.name}__`,
-            data?.autoproxy_member ? `Member: ${data.autoproxy_member}` : "",
-            `Mode: ${data?.autoproxy_mode}`,
-            data?.last_latch_timestamp ? `Last latch timestamp: ${data.last_latch_timestamp}` : ""
+            data[1]?.autoproxy_member ? `Member: ${data[1].autoproxy_member}` : "",
+            `Mode: ${data[1].autoproxy_mode}`,
+            data[1]?.last_latch_timestamp ? `Last latch timestamp: ${data[1].last_latch_timestamp}` : ""
         ].join("\n").replaceAll("\n\n", "\n");
     } else {
-        const data = cache.autoproxy.get("0");
+        let data = cache.autoproxy.find(e => e[0] === "0");
+        if (data === undefined) {
+            cache.autoproxy.push(["0", { autoproxy_member: null, autoproxy_mode: AutoproxyMode.off, last_latch_timestamp: null }]);
+            data = cache.autoproxy.find(e => e[0] === ctx.guild?.id);
+            if (data === undefined)
+                return "Failed to create autoproxy cache for DMs";
+        }
         return [
             "__Autoproxy settings for DMs__",
-            data?.autoproxy_member ? `Member: ${data.autoproxy_member}` : "",
-            `Mode: ${data?.autoproxy_mode}`,
-            data?.last_latch_timestamp ? `Last latch timestamp: ${data.last_latch_timestamp}` : ""
+            data[1]?.autoproxy_member ? `Member: ${data[1].autoproxy_member}` : "",
+            `Mode: ${data[1]?.autoproxy_mode}`,
+            data[1]?.last_latch_timestamp ? `Last latch timestamp: ${data[1].last_latch_timestamp}` : ""
         ].join("\n").replaceAll("\n\n", "\n");
     }
 }

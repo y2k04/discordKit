@@ -6,19 +6,18 @@
 
 import { definePluginSettings } from "@api/Settings";
 import { Button } from "@components/Button";
-import { commands } from "@equicordplugins/discordKit/commands";
-import { Cache } from "@equicordplugins/discordKit/utils";
-import { EquicordDevs } from "@utils/constants";
 import definePlugin, { OptionType } from "@utils/types";
 import { showToast, Toasts } from "@webpack/common";
 
+import { commands } from "./commands";
 import PluralKit, { System, SystemAutoproxySettings } from "./PluralKit";
+import { Cache } from "./utils";
 
 export let pk: PluralKit;
 export const cache: Cache = {
     isReady: false,
     token: () => settings.store.pk_token,
-    autoproxy: {} as Map<string, SystemAutoproxySettings>,
+    autoproxy: new Array<[string, SystemAutoproxySettings]>(),
     system: {} as System,
     userId: ""
 };
@@ -48,7 +47,7 @@ export const settings = definePluginSettings({
 export default definePlugin({
     name: "DiscordKit",
     description: "Integrates PluralKit into the Discord client",
-    authors: [EquicordDevs.y2k4],
+    authors: [{ name: "y2k4", id: 391801250909257728n }],
     settings,
 
     commands,

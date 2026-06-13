@@ -23,7 +23,7 @@ export async function UpdateProfile(args: Record<string, any>) {
 export interface Cache {
     isReady: boolean,
     token: () => string,
-    autoproxy: Map<string, SystemAutoproxySettings>,
+    autoproxy: [string, SystemAutoproxySettings][],
     system: System,
     userId: string;
 }

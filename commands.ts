@@ -5,16 +5,16 @@
  */
 
 import { ApplicationCommandOptionType } from "@api/Commands";
-import autoproxy from "@equicordplugins/discordKit/commands/autoproxy";
-import system from "@equicordplugins/discordKit/commands/system";
-import { CmdArgToDict } from "@equicordplugins/discordKit/utils";
 import { Command } from "@vencord/discord-types";
 
 import { cache, pk } from ".";
+import autoproxy from "./commands/autoproxy";
+import system from "./commands/system";
+import { CmdArgToDict } from "./utils";
 
 export const commands: Command[] = [
     {
-        name: "system",
+        name: "pk;system",
         description: "System Commands",
         options: [
             {
@@ -27,7 +27,7 @@ export const commands: Command[] = [
         execute: async (args, ctx) => await system(pk, cache, CmdArgToDict(args))
     },
     {
-        name: "autoproxy",
+        name: "pk;autoproxy",
         description: "Autoproxy Commands",
         options: [
             {

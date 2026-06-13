@@ -65,35 +65,38 @@ export default class {
         );
     }
 
-    async api(method: string = "GET", path: string, token: string, body: BodyInit | null = null): Promise<any> {
-        return (await fetch(`${this.endpoint}${path}`, {
+    async api(method: string = "GET", path: string, token: string, body: BodyInit | null = null, headers: HeadersInit | null = null): Promise<Response> {
+        return fetch(`${this.endpoint}${path}`, {
             method,
             body,
             headers: {
-                Authorization: token
+                Authorization: token,
+                ...headers
             }
-        })).json();
+        });
     }
 
     async getSystem(system: string = "@me", token: string): Promise<System> {
-        const res = await this.api("GET", `/systems/${system}`, token) as System;
-        if (system === "@me") res.members = await this.api("GET", `/systems/${system}/members`, token) as Member[] ?? [];
+        const res = await this.api("GET", `/systems/${system}`, token).then(r => r.json()) as System;
+        if (system === "@me") res.members = await this.api("GET", `/systems/${system}/members`, token).then(r => r.json()) as Member[] ?? [];
         return res;
     }
 
     async getAutoproxySettings(guild_id: string, token: string): Promise<SystemAutoproxySettings> {
-        return await this.api("GET", `/systems/@me/autoproxy?guild_id=${guild_id}`, token) as SystemAutoproxySettings;
+        return await this.api("GET", `/systems/@me/autoproxy?guild_id=${guild_id}`, token).then(r => r.json()) as SystemAutoproxySettings;
     }
 
     async setAutoproxy(member: Member | null, cache: Cache, guild: Guild | null = null, mode: string = "member"): Promise<boolean> {
         const guild_id = guild ? guild.id : "0"; // 0 = DMs
-        const autoproxy = cache.autoproxy.get(guild_id);
+        const autoproxy = cache.autoproxy.find(e => e[0] === guild_id);
 
-        const req = await this.api("PATCH", `${this.endpoint}/systems/@me/autoproxy`, cache.token(),
-            JSON.stringify({ guild_id, autoproxy_member: member?.id, autoproxy_mode: mode })
-        );
+        const req = await this.api("PATCH", `/systems/@me/autoproxy?guild_id=${guild_id}`, cache.token(),
+            JSON.stringify({ guild_id: Number.parseInt(guild_id), autoproxy_member: member?.id, autoproxy_mode: mode }),
+            { "Content-Type": "application/json" }
+        ).then(r => r.json()).catch(r => { throw r; });
 
-        if (autoproxy === undefined || req !== autoproxy) cache.autoproxy.set(guild_id, req);
+        if (autoproxy === undefined) cache.autoproxy.push(req);
+        else if (req !== autoproxy) cache.autoproxy[cache.autoproxy.findIndex(e => e[0] === guild_id)][1] = req;
         else return false;
 
         return true;
@@ -166,8 +169,7 @@ export interface ProxyTags {
 }
 
 export interface SystemAutoproxySettings {
-    guild_id, channel_id: bigint | null;
-    autoproxy_mode: AutoproxyMode;
+    autoproxy_mode: AutoproxyMode | null;
     autoproxy_member: string | null;
     readonly last_latch_timestamp: Date | null;
 }
