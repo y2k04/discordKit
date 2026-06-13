@@ -6,21 +6,21 @@
 
 import { CommandReturnValue } from "@vencord/discord-types";
 
+import { getToken } from "..";
 import PluralKit from "../PluralKit";
-import { Cache } from "../utils";
+import { PKCache } from "../utils";
 
-export default async function (pk: PluralKit, cache: Cache, args: Record<string, any>): Promise<CommandReturnValue> {
-    if (!cache.isReady) return { content: "DiscordKit is not ready." };
+export default async function (pk: PluralKit, cache: PKCache, args: Record<string, any>): Promise<CommandReturnValue> {
+    if (!pk.isReady) return { content: "DiscordKit is not ready." };
 
     const id = args.id === undefined ? "@me" :
         args.id.startsWith("<@") ? args.id.replace(/[<@>]/g, "") : args.id;
-    const token = id === "@me" ? cache.token() : "";
-    const fetch = [id === "@me" ? "config" : "", "fronters", "group members", "groups", "members", "switches"];
+    const token = id === "@me" ? getToken() : "";
 
     try {
         const system_temp = Object.entries(id === "@me" || id === cache.userId ?
             cache.system : await pk.getSystem(id, token)
-        ).filter(v => v[1] !== null); // Required because API throws both types
+        ).filter(v => v[1] !== null);
 
         const system: Array<[string, any]> = [];
         const contentLines: string[] = [];
@@ -46,11 +46,15 @@ export default async function (pk: PluralKit, cache: Cache, args: Record<string,
                     case "switches":
                     case "members":
                         key = `${v[0].slice(0, 1).toUpperCase()}${v[0].slice(1)}`;
-                        value = value?.size ? `${value.size} (see \`/${v[0]}\` to list)` : "0";
+                        value = value?.length ? `${value.length}` : "0";
                         break;
                     case "description":
                         key = `${v[0].slice(0, 1).toUpperCase()}${v[0].slice(1)}`;
                         value = `\n> ${value.replaceAll("\n", "\n> ")}`;
+                        break;
+                    case "color":
+                        key = `${v[0].slice(0, 1).toUpperCase()}${v[0].slice(1)}`;
+                        value = `#${v[1]}`;
                         break;
                     default:
                         key = `${v[0].slice(0, 1).toUpperCase()}${v[0].slice(1)}`;

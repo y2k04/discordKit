@@ -4,28 +4,41 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+import { DataStore } from "@api/index";
 import { DefinedSettings } from "@utils/types";
 import { Guild } from "@vencord/discord-types";
 import { OAuth2AuthorizeModal, openModal, RestAPI, showToast, Toasts, UserStore } from "@webpack/common";
 
-import { Cache } from "./utils";
+import { getToken } from ".";
+import { PKCache } from "./utils";
 
 export default class {
     private endpoint: string = "https://api.pluralkit.me/v2";
+    private dataStoreKey: string = "";
+    public isReady: boolean = false;
 
-    constructor(settings: DefinedSettings, cache: Cache) {
-        if (cache.token() !== "") {
+    constructor(settings: DefinedSettings, cache: PKCache) {
+        this.dataStoreKey = `discordKit_${UserStore.getCurrentUser().id}`;
+
+        if (getToken() !== "") {
             if (!this.tryLogin(cache)) {
                 settings.store.pk_token = "";
+                this.syncCacheToStore(cache);
             }
         }
     }
 
-    async tryLogin(cache: Cache): Promise<boolean> {
+    async tryLogin(cache: PKCache): Promise<boolean> {
         try {
-            cache.system = await this.getSystem("@me", cache.token());
-            cache.userId = UserStore.getCurrentUser()?.id;
-            cache.isReady = true;
+            if (!await this.testToken(getToken())) throw "Invalid token.";
+
+            this.setCacheFromStore(cache);
+            if (cache.system.id === undefined) {
+                cache.system = await this.getSystem("@me", getToken());
+                cache.userId = UserStore.getCurrentUser()?.id;
+                this.syncCacheToStore(cache);
+            }
+            this.isReady = true;
 
             showToast(`Succesfully logged into PluralKit: ${cache.system.id}`, Toasts.Type.SUCCESS);
             return true;
@@ -65,6 +78,24 @@ export default class {
         );
     }
 
+    async testToken(token: string): Promise<boolean> {
+        return (await this.api("GET", "/systems/@me/autoproxy", token)).status === 501;
+    }
+
+    async setCacheFromStore(cache: PKCache) {
+        const tmp = await DataStore.get<PKCache>(this.dataStoreKey);
+        if (tmp) cache = tmp;
+        else return false;
+    }
+
+    syncCacheToStore(cache: PKCache) {
+        DataStore.set(this.dataStoreKey, cache);
+    }
+
+    deleteCacheFromStore(cache: PKCache) {
+        DataStore.del(this.dataStoreKey);
+    }
+
     async api(method: string = "GET", path: string, token: string, body: BodyInit | null = null, headers: HeadersInit | null = null): Promise<Response> {
         return fetch(`${this.endpoint}${path}`, {
             method,
@@ -76,9 +107,15 @@ export default class {
         });
     }
 
-    async getSystem(system: string = "@me", token: string): Promise<System> {
-        const res = await this.api("GET", `/systems/${system}`, token).then(r => r.json()) as System;
-        if (system === "@me") res.members = await this.api("GET", `/systems/${system}/members`, token).then(r => r.json()) as Member[] ?? [];
+    async getSystem(system: string = "@me", token: string, cache: PKCache | null = null): Promise<System> {
+        let res: System;
+
+        if (cache?.system) res = cache.system;
+        else res = await this.api("GET", `/systems/${system}`, token).then(r => r.json()) as System;
+
+        if (system === "@me" && cache?.system.members === undefined) {
+            res.members = await this.api("GET", `/systems/${system}/members`, token).then(r => r.json()) as Member[];
+        }
         return res;
     }
 
@@ -86,11 +123,11 @@ export default class {
         return await this.api("GET", `/systems/@me/autoproxy?guild_id=${guild_id}`, token).then(r => r.json()) as SystemAutoproxySettings;
     }
 
-    async setAutoproxy(member: Member | null, cache: Cache, guild: Guild | null = null, mode: string = "member"): Promise<boolean> {
+    async setAutoproxy(member: Member | null, cache: PKCache, guild: Guild | null = null, mode: string = "member"): Promise<boolean> {
         const guild_id = guild ? guild.id : "0"; // 0 = DMs
         const autoproxy = cache.autoproxy.find(e => e[0] === guild_id);
 
-        const req = await this.api("PATCH", `/systems/@me/autoproxy?guild_id=${guild_id}`, cache.token(),
+        const req = await this.api("PATCH", `/systems/@me/autoproxy?guild_id=${guild_id}`, getToken(),
             JSON.stringify({ guild_id: Number.parseInt(guild_id), autoproxy_member: member?.id, autoproxy_mode: mode }),
             { "Content-Type": "application/json" }
         ).then(r => r.json()).catch(r => { throw r; });

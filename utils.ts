@@ -13,16 +13,22 @@ export function CmdArgToDict(args: CommandArgument[]): Record<string, any> {
     return Object.fromEntries(args.map(v => [v.name, v.value]));
 }
 
-export async function UpdateProfile(args: Record<string, any>) {
+export async function UpdateMainProfile(args: Record<string, any>) {
     return RestAPI.patch({
         url: Constants.Endpoints.ME,
         body: args
     });
 }
 
-export interface Cache {
-    isReady: boolean,
-    token: () => string,
+export async function UpdateGuildProfile(guild_id: string, args: Record<string, any>) {
+    return RestAPI.patch({
+        url: `/guilds/${guild_id}/members/@me`,
+        body: args,
+        oldFormErrors: true
+    });
+}
+
+export interface PKCache {
     autoproxy: [string, SystemAutoproxySettings][],
     system: System,
     userId: string;
