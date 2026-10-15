@@ -1,3 +1,7 @@
+### Moved to https://git.gay/y2k4/discordkit
+
+---
+
 # discordKit
 DiscordKit is a client-side integration for PluralKit.
 
